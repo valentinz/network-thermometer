@@ -5,9 +5,18 @@
 #include <avr/interrupt.h>
 #include <util/delay.h>
 #include "rfm70-config.h"
+#include "aes.h"
 
-unsigned char command = 0x00;
-
+/* a sample key, key must be located in RAM */
+uint8_t key[]  = { 0x01, 0x23, 0x45, 0x67,
+                   0x89, 0xAB, 0xCD, 0xEF,
+                   0x01, 0x23, 0x45, 0x67,
+                   0x89, 0xAB, 0xCD, 0xEF };
+/* sample data, you can encrypt what you want but keep in mind that only 128 bits (not less not more) get encrypted*/
+uint8_t data[] = { 0x01, 0x02, 0x03, 0x04,
+                   0x05, 0x06, 0x07, 0x08,
+                   0x09, 0x0A, 0x0B, 0x0C,
+                   0x0D, 0x0E, 0x0F, 0x00 };
 
 float vcc;//variable to hold the value of Vcc
 
@@ -25,17 +34,13 @@ ISR(ADC_vect) //ADC End of Conversion interrupt
 }
 
 int main (void) {
-	DDRC = 0xFF;
-	PORTC = 0x00;
 	DDRD = 0xFF;
 	PORTD = 0xFF;
 
-	unsigned char len, i, chksum, pipe;
-	unsigned char rx_buf[32];
-	unsigned char tx_buf[17]={
-		0x01,0x31,0x32,0x33,0x34,0x35,0x36,0x37,0x38,
-		0x39,0x3a,0x3b,0x3c,0x3d,0x3e,0x3f,0x78};
+	uint8_t j;
 
+	aes128_ctx_t ctx; /* the context where the round keys are stored */
+	aes128_init(key, &ctx); /* generating the round keys from the 128 bit key */
 	sei(); //Activate interrupts
 
 	rfm70_init();
@@ -43,15 +48,19 @@ int main (void) {
 
 	rfm70_mode_transmit();
 
-	i = 0;
+	j = 0;
 
 	while(1) {
 		read_vcc(); //setup the ADC
 		// transmitter
 		_delay_ms(500);
-		tx_buf[0] = i++;
-		tx_buf[1] = vcc;
-		rfm70_transmit_message_once( tx_buf, 2 );
+		data[0] = j++;
+		data[1] = vcc;
+		for (uint8_t i=2;i<16;i++) {
+			data[i] = 0;
+		}
+		aes128_enc(data, &ctx); /* encrypting the data block */
+		rfm70_transmit_message_once( data, 16 );
 		PORTD = 0x00;
 		_delay_ms(500);
 		PORTD = 0xFF;

@@ -52,7 +52,7 @@ TARGET = main
 
 
 # List C source files here. (C dependencies are automatically generated.)
-SRC = $(TARGET).c ../../libs/rfm70.c
+SRC = $(TARGET).c ../../libs/rfm70.c ../../libs/avr-crypto-lib/aes/aes_keyschedule.c ../../libs/avr-crypto-lib/aes/aes_sbox.c ../../libs/avr-crypto-lib/aes/aes_enc.c ../../libs/avr-crypto-lib/aes/aes128_enc.c
 
 
 # List Assembler source files here.
@@ -62,7 +62,7 @@ SRC = $(TARGET).c ../../libs/rfm70.c
 # Even though the DOS/Win* filesystem matches both .s and .S the same,
 # it will preserve the spelling of the filenames, and gcc itself does
 # care about how the name is spelled on its command-line.
-ASRC = 
+ASRC = ../../libs/avr-crypto-lib/gf256mul/gf256mul.S
 
 
 
@@ -93,7 +93,7 @@ CSTANDARD = -std=gnu99
 CDEFS =
 
 # Place -I options here
-CINCS =
+CINCS = -I../rfm7x/ -I../../libs/ -I../../libs/avr-crypto-lib/gf256mul -I../../libs/avr-crypto-lib/aes/
 
 
 # Compiler flags.
@@ -112,7 +112,6 @@ CFLAGS += -Wa,-adhlns=$(<:.c=.lst)
 CFLAGS += $(patsubst %,-I%,$(EXTRAINCDIRS))
 CFLAGS += $(CSTANDARD)
 CFLAGS += -DF_OSC=$(F_OSC)
-CFLAGS += -I../rfm7x/ -I../../libs/
 
 
 # Assembler flags.
