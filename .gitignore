@@ -1,6 +1,8 @@
 .dep
 *.lst
 *.map
+*.lss
+*.sym
 
 # Object files
 *.o
