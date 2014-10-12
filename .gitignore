@@ -1,3 +1,7 @@
+.dep
+*.lst
+*.map
+
 # Object files
 *.o
 *.ko
