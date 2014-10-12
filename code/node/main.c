@@ -7,6 +7,7 @@
 #include <util/delay.h>
 #include "rfm70-config.h"
 #include "aes.h"
+#include "../vars.h"
 
 // Wake-up stuff
 volatile uint8_t interrupt_flag = 0;
@@ -22,16 +23,12 @@ ISR(TIMER1_COMPA_vect) {
 	interrupt_flag = 1;
 }
 
-// Encryption stuff
-uint8_t key[]  = { 0x01, 0x23, 0x45, 0x67,
-                   0x89, 0xAB, 0xCD, 0xEF,
-                   0x01, 0x23, 0x45, 0x67,
-                   0x89, 0xAB, 0xCD, 0xEF };
-uint8_t data[16];
+
+temp_package_t data;
 
 
 // Voltage stuff
-float vcc;//variable to hold the value of Vcc
+uint8_t vcc;//variable to hold the value of Vcc
 void read_vcc(void) {
 	ADMUX = 0xE; //Set the Band Gap voltage as the ADC input
 	ADCSRA = (1<<ADEN)|(1<<ADIE)|(1<<ADSC)|5;
@@ -41,7 +38,7 @@ void read_vcc(void) {
 ISR(ADC_vect) {
 	unsigned char adc_data;
 	adc_data = ADC>>2; //read 8 bit value
-	vcc = 1.2 * 255 / adc_data * 10;
+	vcc = 1.2 * 255.0 * VCC_SCALE_FACTOR / adc_data;
 }
 
 int main (void) {
@@ -67,13 +64,15 @@ int main (void) {
 			rfm70_mode_transmit();
 			_delay_ms(50);
 			read_vcc(); //setup the ADC
-			data[0] = j++;
-			data[1] = vcc;
-			for (uint8_t i=2;i<16;i++) {
-				data[i] = 0;
+			data.info.type = 1;
+			data.info.vcc = vcc;
+			data.info.vcc_factor = VCC_SCALE_FACTOR;
+			data.info.tempreture = 0;
+			for (uint8_t i=0;i<11;i++) {
+				data.info.data[i] = 0;
 			}
-			aes128_enc(data, &ctx); /* encrypting the data block */
-			rfm70_transmit_message( data, 16 );
+			aes128_enc(data.raw, &ctx); /* encrypting the data block */
+			rfm70_transmit_message( data.raw, 16 );
 			_delay_ms(100);
 			rfm70_mode_powerdown();
 		}
