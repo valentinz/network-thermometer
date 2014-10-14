@@ -14,12 +14,20 @@ volatile uint8_t interrupt_flag = 0;
 
 void wakeup_init(void) {
 	OCR1A = 58593;
-	// TCCR1B  = (1 << WGM12) | (1 << CS12) | (1 << CS10); // every minute
 	TCCR1B  = (1 << WGM12) | (1 << CS11) | (1 << CS10);
+	// TCCR1B  = (1 << WGM12) | (1 << CS12) | (1 << CS10); // every minute
+#if defined(__AVR_ATtiny84__)
+	TIMSK1  = 1 << OCIE1A;
+#else
 	TIMSK = 1 << OCIE1A;
+#endif
 }
 
+#ifdef TIM1_COMPA_vect
+ISR(TIM1_COMPA_vect) {
+#else
 ISR(TIMER1_COMPA_vect) {
+#endif
 	interrupt_flag = 1;
 }
 
@@ -30,7 +38,11 @@ temp_package_t data;
 // Voltage stuff
 uint8_t vcc;//variable to hold the value of Vcc
 void read_vcc(void) {
-	ADMUX = 0xE; //Set the Band Gap voltage as the ADC input
+#if defined(__AVR_ATtiny84__)
+	ADMUX = (1<<MUX5)|(1<<MUX0); //Set the Band Gap voltage as the ADC input
+#else
+	ADMUX = (1<<MUX3)|(1<<MUX2)|(1<<MUX1); //Set the Band Gap voltage as the ADC input
+#endif
 	ADCSRA = (1<<ADEN)|(1<<ADIE)|(1<<ADSC)|5;
 }
 
@@ -38,7 +50,7 @@ void read_vcc(void) {
 ISR(ADC_vect) {
 	unsigned char adc_data;
 	adc_data = ADC>>2; //read 8 bit value
-	vcc = 1.2 * 255.0 * VCC_SCALE_FACTOR / adc_data;
+	vcc = 1.1 * 255.0 * VCC_SCALE_FACTOR / adc_data;
 }
 
 int main (void) {
@@ -62,6 +74,7 @@ int main (void) {
 		if (interrupt_flag == 1) {
 			interrupt_flag = 0;
 			rfm70_mode_transmit();
+			rfm70_power(3);
 			_delay_ms(50);
 			read_vcc(); //setup the ADC
 			data.info.type = 1;

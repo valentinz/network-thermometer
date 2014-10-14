@@ -22,6 +22,20 @@
 
 #define PIN_COPY(port, pin, val)	( (val==0) ? (port &= ~(1<<pin)) : (port |= (1<<pin))  )
 
+#if defined(__AVR_ATtiny84__)
+
+#define RFM70_SCK( x )   PIN_COPY( PORTA, PA3, (x) ) 
+#define RFM70_MOSI( x )  PIN_COPY( PORTA, PA4, (x) )
+#define RFM70_MISO       ( (PINA & (1<<PINA5)) >> PINA5 )
+#define RFM70_CSN( x )   PIN_COPY( PORTA, PA2, (x) )
+#define RFM70_CE( x )    PIN_COPY( PORTA, PA1, (x) )
+
+#define RFM70_PIN_DIRECTION { \
+   DDRA = 0x1E; \
+}
+
+#else
+
 #define RFM70_SCK( x )   PIN_COPY( PORTC, PC3, (x) ) 
 #define RFM70_MOSI( x )  PIN_COPY( PORTC, PC2, (x) )
 #define RFM70_MISO       ( (PINC & (1<<PINC1)) >> PINC1 )
@@ -31,6 +45,8 @@
 #define RFM70_PIN_DIRECTION { \
    DDRC = 0x3C; \
 }
+
+#endif
 
 #define RFM70_WAIT_US( x ) _delay_us( x )
 #define RFM70_WAIT_MS( x ) _delay_ms( x )
